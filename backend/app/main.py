@@ -7,7 +7,10 @@ app = FastAPI(title="Vehicle Lookup Demo")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+    "https://netcapital-task2.vercel.app",  # тогтвортой production domain
+    "https://netcapital-task2-in0vimnsq-jawhaas-projects-61641200.vercel.app",  # одоогийн preview (сонголтоор)
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

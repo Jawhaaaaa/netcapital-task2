@@ -78,9 +78,10 @@ export default function VehicleResultCard({ vehicle }: Props) {
       </div>
 
       {/* Right content */}
-      <div className="flex-1 space-y-6">
-        {/* Ерөнхий мэдээлэл */}
-        <div>
+      <div className="flex-1">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Ерөнхий мэдээлэл */}
+          <div className="flex-1">
           <h3 className="text-blue-700 font-bold text-sm mb-3">Ерөнхий мэдээлэл</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <div className="space-y-3">
@@ -97,7 +98,7 @@ export default function VehicleResultCard({ vehicle }: Props) {
         </div>
 
         {/* Техникийн мэдээлэл */}
-        <div>
+        <div className="flex-1">
           <h3 className="text-blue-700 font-bold text-sm mb-3">Техникийн мэдээлэл</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <div className="space-y-3">
@@ -113,6 +114,7 @@ export default function VehicleResultCard({ vehicle }: Props) {
           </div>
         </div>
       </div>
+    </div>
     </div>
   )
 }
