@@ -1,7 +1,11 @@
 from typing import Optional
 
-import httpx
 from fastapi import APIRouter, HTTPException
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 from app.database import supabase
 from app.schemas import VehicleResponse
@@ -9,10 +13,8 @@ from app.schemas import VehicleResponse
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
 
-async def _lookup_autobox(value: str) -> VehicleResponse:
-    """Look up a vehicle by plate number or VIN via the autobox.mn API."""
+async def _lookup_autobox(value: str) -> Optional[VehicleResponse]:
     normalized = value.strip().upper()
-
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(
@@ -21,19 +23,12 @@ async def _lookup_autobox(value: str) -> VehicleResponse:
             )
             resp.raise_for_status()
             body = resp.json()
-    except httpx.TimeoutException:
-        raise HTTPException(status_code=504, detail="Серверийн алдаа гарлаа")
-    except httpx.HTTPError:
-        raise HTTPException(status_code=502, detail="Серверийн алдаа гарлаа")
     except Exception:
-        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+        return None
 
     result = body.get("result") or {}
     if result.get("errorMessage") or not result.get("vehicle"):
-        raise HTTPException(
-            status_code=404,
-            detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй",
-        )
+        return None
 
     v = result["vehicle"]
 
@@ -72,6 +67,34 @@ async def _lookup_autobox(value: str) -> VehicleResponse:
     )
 
 
+def _query_supabase(column: str, value: str) -> VehicleResponse:
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
+
+    normalized = value.strip().upper()
+
+    try:
+        result = (
+            supabase.table("vehicles")
+            .select("*")
+            .ilike(column, normalized)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404, detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй"
+        )
+
+    try:
+        return VehicleResponse(**result.data)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+
+
 @router.get("/makes")
 async def list_makes():
     if supabase is None:
@@ -99,53 +122,22 @@ async def list_models(make: Optional[str] = None):
     return models
 
 
-def _query_supabase(column: str, value: str) -> VehicleResponse:
-    if supabase is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Серверийн алдаа гарлаа",
-        )
-
-    normalized = value.strip().upper()
-
-    try:
-        result = (
-            supabase.table("vehicles")
-            .select("*")
-            .ilike(column, normalized)
-            .maybe_single()
-            .execute()
-        )
-    except Exception:
-        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
-
-    if not result.data:
-        raise HTTPException(
-            status_code=404, detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй"
-        )
-
-    try:
-        return VehicleResponse(**result.data)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
-
-
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
     column = "plate_number" if type == "plate" else "vin"
-    try:
-        return await _lookup_autobox(value)
-    except HTTPException as exc:
-        if exc.status_code == 404 and supabase is not None:
-            return _query_supabase(column, value)
-        raise
+    result = await _lookup_autobox(value)
+    if result is not None:
+        return result
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
+    return _query_supabase(column, value)
 
 
 @router.get("/{plate_number}", response_model=VehicleResponse)
 async def lookup_vehicle(plate_number: str):
-    try:
-        return await _lookup_autobox(plate_number)
-    except HTTPException as exc:
-        if exc.status_code == 404 and supabase is not None:
-            return _query_supabase("plate_number", plate_number)
-        raise
+    result = await _lookup_autobox(plate_number)
+    if result is not None:
+        return result
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
+    return _query_supabase("plate_number", plate_number)
