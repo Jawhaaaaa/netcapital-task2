@@ -46,6 +46,10 @@ async def _lookup_autobox(search_type: str, value: str) -> Optional[VehicleRespo
         except (ValueError, TypeError):
             return None
 
+    def _safe_str_from_int(val):
+        i = _safe_int(val)
+        return str(i) if i is not None else None
+
     return VehicleResponse(
         plate_number=_safe(v.get("plateNo")),
         vin=_safe(v.get("cabinNo")),
@@ -63,12 +67,12 @@ async def _lookup_autobox(search_type: str, value: str) -> Optional[VehicleRespo
         engine_capacity=_safe(v.get("engineCapacity")),
         drive_type=_safe(v.get("wheelName")),
         steering_position=_safe(v.get("steeringTypeName")),
-        height=_safe_int(v.get("height")),
-        width=_safe_int(v.get("width")),
-        length=_safe_int(v.get("length")),
-        weight=_safe_int(v.get("ownWeight")),
-        gross_weight=_safe_int(v.get("totalWeight")),
-        payload=_safe_int(v.get("maxLoad")),
+        height=_safe_str_from_int(v.get("height")),
+        width=_safe_str_from_int(v.get("width")),
+        length=_safe_str_from_int(v.get("length")),
+        weight=_safe_str_from_int(v.get("ownWeight")),
+        gross_weight=_safe_str_from_int(v.get("totalWeight")),
+        payload=_safe_str_from_int(v.get("maxLoad")),
         engine_type=_safe(v.get("engineModelName")),
         axle_count=_safe_int(v.get("axleCount")),
     )
