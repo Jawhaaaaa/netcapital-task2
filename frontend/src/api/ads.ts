@@ -9,16 +9,17 @@ export async function getMakes(): Promise<string[]> {
   return data
 }
 
-export async function getModels(make: string): Promise<string[]> {
-  const { data } = await api.get<string[]>('/api/vehicles/models', {
-    params: { make },
-  })
+export async function getModels(make?: string): Promise<string[]> {
+  const params: Record<string, string> = {}
+  if (make) params.make = make
+  const { data } = await api.get<string[]>('/api/vehicles/models', { params })
   return data
 }
 
-export async function searchAds(make: string, model: string): Promise<{ redirect_url: string }> {
-  const { data } = await api.get<{ redirect_url: string }>('/api/ads/search', {
-    params: { make, model },
-  })
+export async function searchAds(make?: string, model?: string): Promise<{ redirect_url: string }> {
+  const params: Record<string, string> = {}
+  if (make) params.make = make
+  if (model) params.model = model
+  const { data } = await api.get<{ redirect_url: string }>('/api/ads/search', { params })
   return data
 }

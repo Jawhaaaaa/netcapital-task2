@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 
 from app.database import supabase
@@ -50,17 +52,14 @@ async def list_makes():
 
 
 @router.get("/models")
-async def list_models(make: str):
+async def list_models(make: Optional[str] = None):
     if supabase is None:
         raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
-    normalized = make.strip().upper()
     try:
-        result = (
-            supabase.table("vehicles")
-            .select("model")
-            .ilike("make", normalized)
-            .execute()
-        )
+        query = supabase.table("vehicles").select("model")
+        if make:
+            query = query.ilike("make", make.strip().upper())
+        result = query.execute()
     except Exception:
         raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
     models = sorted({row["model"] for row in result.data if row.get("model")})

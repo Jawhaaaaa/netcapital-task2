@@ -27,33 +27,35 @@ export default function AdsSearchPage({ initialMake, initialModel }: Props) {
       })
       .catch(() => setError('Марк жагсаалт татахад алдаа гарлаа'))
       .finally(() => setLoadingMakes(false))
+
+    getModels()
+      .then((data) => setModels(data))
+      .catch(() => {})
   }, [initialMake])
 
   useEffect(() => {
-    if (!selectedMake) {
-      setModels([])
-      return
-    }
     setLoadingModels(true)
-    setSelectedModel('')
-    getModels(selectedMake)
+    ;(selectedMake ? getModels(selectedMake) : getModels())
       .then((data) => {
         setModels(data)
-        if (initialModel && selectedMake === initialMake && data.includes(initialModel)) {
-          setSelectedModel(initialModel)
+        if (!data.includes(selectedModel)) {
+          setSelectedModel('')
         }
       })
       .catch(() => setError('Модель жагсаалт татахад алдаа гарлаа'))
       .finally(() => setLoadingModels(false))
-  }, [selectedMake, initialMake, initialModel])
+  }, [selectedMake])
 
   const handleSearch = async () => {
-    if (!selectedMake || !selectedModel) return
+    if (!selectedMake && !selectedModel) return
     setSearching(true)
     setResult(null)
     setError(null)
     try {
-      const data = await searchAds(selectedMake, selectedModel)
+      const data = await searchAds(
+        selectedMake || undefined,
+        selectedModel || undefined,
+      )
       setResult(data)
     } catch {
       setError('Зар татахад алдаа гарлаа. Дахин оролдоно уу.')
@@ -61,6 +63,8 @@ export default function AdsSearchPage({ initialMake, initialModel }: Props) {
       setSearching(false)
     }
   }
+
+  const canSearch = Boolean(selectedMake || selectedModel)
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -77,7 +81,7 @@ export default function AdsSearchPage({ initialMake, initialModel }: Props) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none"
                 disabled={loadingMakes}
               >
-                <option value="">-- Сонгох --</option>
+                <option value="">Бүх марк</option>
                 {makes.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -90,9 +94,9 @@ export default function AdsSearchPage({ initialMake, initialModel }: Props) {
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none"
-                disabled={!selectedMake || loadingModels}
+                disabled={loadingModels}
               >
-                <option value="">-- Сонгох --</option>
+                <option value="">Бүх загвар</option>
                 {models.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -101,7 +105,7 @@ export default function AdsSearchPage({ initialMake, initialModel }: Props) {
 
             <button
               onClick={handleSearch}
-              disabled={!selectedMake || !selectedModel || searching}
+              disabled={!canSearch || searching}
               className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
             >
               {searching ? 'Хайж байна...' : 'Хайх'}
