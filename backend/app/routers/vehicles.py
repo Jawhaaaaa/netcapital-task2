@@ -13,55 +13,64 @@ from app.schemas import VehicleResponse
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
 
-async def _lookup_autobox(value: str) -> Optional[VehicleResponse]:
+AUTOBOX_API = "https://www.autobox.mn/api/services/app/Xyp/GetAutoboxInfo"
+
+
+async def _lookup_autobox(search_type: str, value: str) -> Optional[VehicleResponse]:
     normalized = value.strip().upper()
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
-                "https://www.autobox.mn/api/services/app/Xyp/GetAutoboxInfo",
-                params={"plateNo": normalized},
+                AUTOBOX_API,
+                params={"searchType": search_type, "searchValue": normalized},
             )
             resp.raise_for_status()
             body = resp.json()
-        result = body.get("result") or {}
-        if result.get("errorMessage") or not result.get("vehicle"):
+        result = body.get("result")
+        if not result or not result.get("vehicle"):
             return None
         v = result["vehicle"]
     except Exception:
         return None
 
-    def _get(*keys):
-        for k in keys:
-            val = v.get(k)
-            if val is not None:
-                return val
-        return None
+    def _safe(val):
+        if val is None or val == "" or val == "-":
+            return None
+        return val
+
+    def _safe_int(val):
+        if val is None or val == "" or val == "-":
+            return None
+        try:
+            return int(str(val).replace(" ", "").replace(",", ""))
+        except (ValueError, TypeError):
+            return None
 
     return VehicleResponse(
-        plate_number=_get("plateNo", "plateNumber", "regNo") or normalized,
-        vin=_get("vinNo", "vinNumber", "vin"),
-        make=_get("makeName", "make", "mark", "markName"),
-        model=_get("modelName", "model"),
-        purpose=_get("purpose", "usageType"),
-        manufacture_year=_get("manufactureYear", "yearMade", "year", "manufacture_year"),
-        imported_date=_get("importDate", "importedDate", "imported_date"),
-        country=_get("countryName", "country", "originCountry"),
-        color=_get("colorName", "color"),
-        special_purpose=_get("specialPurpose", "special_purpose"),
-        steering_class=_get("steeringClass", "steering_class"),
-        fuel_type=_get("fuelTypeName", "fuelType", "fuel_type"),
-        seat_count=_get("seatCount", "seat_count"),
-        engine_capacity=_get("engineCapacity", "engine_capacity"),
-        drive_type=_get("driveType", "drive_type"),
-        steering_position=_get("steeringPosition", "steering_position"),
-        height=_get("height"),
-        width=_get("width"),
-        length=_get("length"),
-        weight=_get("weight", "curbWeight"),
-        gross_weight=_get("grossWeight", "gross_weight"),
-        payload=_get("payload"),
-        engine_type=_get("engineType", "engine_type"),
-        axle_count=_get("axleCount", "axle_count"),
+        plate_number=_safe(v.get("plateNo")),
+        vin=_safe(v.get("cabinNo")),
+        make=_safe(v.get("markName")),
+        model=_safe(v.get("modelName")),
+        purpose=_safe(v.get("purposeDisplay")),
+        manufacture_year=_safe_int(v.get("buildYear")),
+        imported_date=_safe(v.get("importDate")),
+        country=_safe(v.get("countryName")),
+        color=_safe(v.get("colorName")),
+        special_purpose=_safe(v.get("specialName")),
+        steering_class=_safe(v.get("className")),
+        fuel_type=_safe(v.get("fuelName")),
+        seat_count=_safe_int(v.get("seatCount")),
+        engine_capacity=_safe(v.get("engineCapacity")),
+        drive_type=_safe(v.get("wheelName")),
+        steering_position=_safe(v.get("steeringTypeName")),
+        height=_safe_int(v.get("height")),
+        width=_safe_int(v.get("width")),
+        length=_safe_int(v.get("length")),
+        weight=_safe_int(v.get("ownWeight")),
+        gross_weight=_safe_int(v.get("totalWeight")),
+        payload=_safe_int(v.get("maxLoad")),
+        engine_type=_safe(v.get("engineModelName")),
+        axle_count=_safe_int(v.get("axleCount")),
     )
 
 
@@ -122,8 +131,9 @@ async def list_models(make: Optional[str] = None):
 
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
+    search_type = "plate" if type == "plate" else "vin"
     column = "plate_number" if type == "plate" else "vin"
-    result = await _lookup_autobox(value)
+    result = await _lookup_autobox(search_type, value)
     if result is not None:
         return result
     if supabase is None:
@@ -133,7 +143,7 @@ async def search_vehicle(type: str, value: str):
 
 @router.get("/{plate_number}", response_model=VehicleResponse)
 async def lookup_vehicle(plate_number: str):
-    result = await _lookup_autobox(plate_number)
+    result = await _lookup_autobox("plate", plate_number)
     if result is not None:
         return result
     if supabase is None:
