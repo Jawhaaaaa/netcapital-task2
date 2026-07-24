@@ -46,35 +46,42 @@ async def _lookup_autobox(search_type: str, value: str) -> Optional[VehicleRespo
         except (ValueError, TypeError):
             return None
 
+    def _get(*keys):
+        for k in keys:
+            val = v.get(k)
+            if val is not None and val != "" and val != "-":
+                return val
+        return None
+
     def _safe_str_from_int(val):
         i = _safe_int(val)
         return str(i) if i is not None else None
 
     return VehicleResponse(
-        plate_number=_safe(v.get("plateNo")),
-        vin=_safe(v.get("cabinNo")),
-        make=_safe(v.get("markName")),
-        model=_safe(v.get("modelName")),
-        purpose=_safe(v.get("purposeDisplay")),
-        manufacture_year=_safe_int(v.get("buildYear")),
-        imported_date=_safe(v.get("importDate")),
-        country=_safe(v.get("countryName")),
-        color=_safe(v.get("colorName")),
-        special_purpose=_safe(v.get("specialName")),
-        steering_class=_safe(v.get("className")),
-        fuel_type=_safe(v.get("fuelName")),
-        seat_count=_safe_int(v.get("seatCount")),
-        engine_capacity=_safe(v.get("engineCapacity")),
-        drive_type=_safe(v.get("wheelName")),
-        steering_position=_safe(v.get("steeringTypeName")),
-        height=_safe_str_from_int(v.get("height")),
-        width=_safe_str_from_int(v.get("width")),
-        length=_safe_str_from_int(v.get("length")),
-        weight=_safe_str_from_int(v.get("ownWeight")),
-        gross_weight=_safe_str_from_int(v.get("totalWeight")),
-        payload=_safe_str_from_int(v.get("maxLoad")),
-        engine_type=_safe(v.get("engineModelName")),
-        axle_count=_safe_int(v.get("axleCount")),
+        plate_number=_get("plateNo", "plateNumber", "regNo") or normalized,
+        vin=_get("cabinNo", "vinNo", "vinNumber", "vin"),
+        make=_get("markName", "makeName", "make", "mark"),
+        model=_get("modelName", "model"),
+        purpose=_get("purposeDisplay", "purpose", "usageType"),
+        manufacture_year=_safe_int(_get("buildYear", "manufactureYear", "yearMade", "year", "manufacture_year")),
+        imported_date=_get("importDate", "importedDate", "imported_date"),
+        country=_get("countryName", "country", "originCountry"),
+        color=_get("colorName", "color"),
+        special_purpose=_get("specialName", "specialPurpose", "special_purpose"),
+        steering_class=_get("steeringClass", "steering_class", "steeringTypeName"),
+        fuel_type=_get("fuelName", "fuelTypeName", "fuelType", "fuel_type"),
+        seat_count=_safe_int(_get("seatCount", "seat_count")),
+        engine_capacity=_get("engineCapacity", "engine_capacity"),
+        drive_type=_get("wheelName", "driveType", "drive_type"),
+        steering_position=_get("steeringPosition", "steering_position", "className"),
+        height=_safe_str_from_int(_get("height")),
+        width=_safe_str_from_int(_get("width")),
+        length=_safe_str_from_int(_get("length")),
+        weight=_safe_str_from_int(_get("ownWeight", "weight", "curbWeight")),
+        gross_weight=_safe_str_from_int(_get("totalWeight", "grossWeight", "gross_weight")),
+        payload=_safe_str_from_int(_get("maxLoad", "payload")),
+        engine_type=_get("engineModelName", "engineType", "engine_type"),
+        axle_count=_safe_int(_get("axleCount", "axle_count")),
     )
 
 

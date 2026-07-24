@@ -5,12 +5,39 @@ interface Props {
   vehicle: Vehicle
 }
 
-function Field({ label, value }: { label: string; value: string | number | null }) {
+const KNOWN_UNITS = ['кг', 'см', 'мм', 'cc', 'м', 'т', 'г', 'м3', 'л', 'кВт', 'HP', 'h', 'kw', 'hp']
+
+const UNIT_MAP: Record<string, string> = {
+  height: ' мм',
+  width: ' мм',
+  length: ' мм',
+  weight: ' кг',
+  gross_weight: ' кг',
+  payload: ' кг',
+}
+
+function hasUnit(val: string): boolean {
+  const v = val.trim()
+  for (const u of KNOWN_UNITS) {
+    if (v.endsWith(u)) return true
+  }
+  return false
+}
+
+function formatValue(val: string | number | null, fieldKey?: string): string | null {
+  if (val === null || val === undefined || val === '') return null
+  const s = String(val)
+  if (hasUnit(s)) return s
+  if (fieldKey && UNIT_MAP[fieldKey]) return s + UNIT_MAP[fieldKey]
+  return s
+}
+
+function Field({ label, value, fieldKey }: { label: string; value: string | number | null; fieldKey?: string }) {
   return (
     <div>
       <p className="text-gray-400 text-xs mb-0.5">{label}</p>
       <p className="text-gray-900 font-semibold text-sm">
-        {value ?? '-'}
+        {formatValue(value, fieldKey) ?? '-'}
       </p>
     </div>
   )
@@ -18,39 +45,39 @@ function Field({ label, value }: { label: string; value: string | number | null 
 
 export default function VehicleResultCard({ vehicle }: Props) {
   const generalLeft = [
-    { label: 'Арлын дугаар', value: vehicle.vin },
-    { label: 'Загвар', value: vehicle.model },
-    { label: 'Зориулалт', value: vehicle.purpose },
-    { label: 'Үйлдвэрлэсэн он', value: vehicle.manufacture_year },
-    { label: 'Импортолгосон', value: vehicle.imported_date },
+    { label: 'Арлын дугаар', value: vehicle.vin, fieldKey: undefined },
+    { label: 'Загвар', value: vehicle.model, fieldKey: undefined },
+    { label: 'Зориулалт', value: vehicle.purpose, fieldKey: undefined },
+    { label: 'Үйлдвэрлэсэн он', value: vehicle.manufacture_year, fieldKey: undefined },
+    { label: 'Импортолгосон', value: vehicle.imported_date, fieldKey: undefined },
   ]
 
   const generalRight = [
-    { label: 'Марк', value: vehicle.make },
-    { label: 'Төрөл', value: '-' },
-    { label: 'Уйлдвэрлэсэн улс', value: vehicle.country },
-    { label: 'Өнгө', value: vehicle.color },
-    { label: 'Тусгай зориулалт', value: vehicle.special_purpose },
+    { label: 'Марк', value: vehicle.make, fieldKey: undefined },
+    { label: 'Төрөл', value: '-', fieldKey: undefined },
+    { label: 'Уйлдвэрлэсэн улс', value: vehicle.country, fieldKey: undefined },
+    { label: 'Өнгө', value: vehicle.color, fieldKey: undefined },
+    { label: 'Тусгай зориулалт', value: vehicle.special_purpose, fieldKey: undefined },
   ]
 
   const techLeft = [
-    { label: 'Жолооны ангилал', value: vehicle.steering_class },
-    { label: 'Суудлын тоо', value: vehicle.seat_count },
-    { label: 'Хөтлөгчийн төрөл', value: vehicle.drive_type },
-    { label: 'Өндөр', value: vehicle.height ?? null },
-    { label: 'Өөрийн жин', value: vehicle.weight ?? null },
-    { label: 'Бух жин', value: vehicle.gross_weight ?? null },
-    { label: 'Даац', value: vehicle.payload ?? null },
+    { label: 'Жолооны ангилал', value: vehicle.steering_class, fieldKey: undefined },
+    { label: 'Суудлын тоо', value: vehicle.seat_count, fieldKey: undefined },
+    { label: 'Хөтлөгчийн төрөл', value: vehicle.drive_type, fieldKey: undefined },
+    { label: 'Өндөр', value: vehicle.height, fieldKey: 'height' },
+    { label: 'Өөрийн жин', value: vehicle.weight, fieldKey: 'weight' },
+    { label: 'Бух жин', value: vehicle.gross_weight, fieldKey: 'gross_weight' },
+    { label: 'Даац', value: vehicle.payload, fieldKey: 'payload' },
   ]
 
   const techRight = [
-    { label: 'Шатахууны хувилбар', value: vehicle.fuel_type },
-    { label: 'Хөдөлгүүрийн багтаамж', value: vehicle.engine_capacity },
-    { label: 'Хурдний байрлал', value: vehicle.steering_position },
-    { label: 'Өргөн', value: vehicle.width ?? null },
-    { label: 'Урт', value: vehicle.length ?? null },
-    { label: 'Хөдөлгүүрийн төрөл', value: vehicle.engine_type },
-    { label: 'Тэнхлэгийн тоо', value: vehicle.axle_count },
+    { label: 'Шатахууны хувилбар', value: vehicle.fuel_type, fieldKey: undefined },
+    { label: 'Хөдөлгүүрийн багтаамж', value: vehicle.engine_capacity, fieldKey: undefined },
+    { label: 'Хурдний байрлал', value: vehicle.steering_position, fieldKey: undefined },
+    { label: 'Өргөн', value: vehicle.width, fieldKey: 'width' },
+    { label: 'Урт', value: vehicle.length, fieldKey: 'length' },
+    { label: 'Хөдөлгүүрийн төрөл', value: vehicle.engine_type, fieldKey: undefined },
+    { label: 'Тэнхлэгийн тоо', value: vehicle.axle_count, fieldKey: undefined },
   ]
 
   return (
@@ -86,12 +113,12 @@ export default function VehicleResultCard({ vehicle }: Props) {
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <div className="space-y-3">
               {generalLeft.map((f) => (
-                <Field key={f.label} label={f.label} value={f.value} />
+                <Field key={f.label} label={f.label} value={f.value} fieldKey={f.fieldKey} />
               ))}
             </div>
             <div className="space-y-3">
               {generalRight.map((f) => (
-                <Field key={f.label} label={f.label} value={f.value} />
+                <Field key={f.label} label={f.label} value={f.value} fieldKey={f.fieldKey} />
               ))}
             </div>
           </div>
@@ -103,12 +130,12 @@ export default function VehicleResultCard({ vehicle }: Props) {
           <div className="grid grid-cols-2 gap-x-8 gap-y-3">
             <div className="space-y-3">
               {techLeft.map((f) => (
-                <Field key={f.label} label={f.label} value={f.value} />
+                <Field key={f.label} label={f.label} value={f.value} fieldKey={f.fieldKey} />
               ))}
             </div>
             <div className="space-y-3">
               {techRight.map((f) => (
-                <Field key={f.label} label={f.label} value={f.value} />
+                <Field key={f.label} label={f.label} value={f.value} fieldKey={f.fieldKey} />
               ))}
             </div>
           </div>
