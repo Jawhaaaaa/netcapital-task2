@@ -31,7 +31,10 @@ async def search_ads(make: Optional[str] = None, model: Optional[str] = None):
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                return {"redirect_url": data["redirect_url"]}
+                url = data["redirect_url"]
+                if not url.startswith("http://") and not url.startswith("https://"):
+                    url = "https://" + url
+                return {"redirect_url": url}
         except (httpx.TimeoutException, httpx.HTTPError) as exc:
             last_error = exc
             if attempts < 2:
