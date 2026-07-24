@@ -37,6 +37,36 @@ def _query(column: str, value: str):
         raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
 
 
+@router.get("/makes")
+async def list_makes():
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
+    try:
+        result = supabase.table("vehicles").select("make").execute()
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+    makes = sorted({row["make"] for row in result.data if row.get("make")})
+    return makes
+
+
+@router.get("/models")
+async def list_models(make: str):
+    if supabase is None:
+        raise HTTPException(status_code=503, detail="Серверийн алдаа гарлаа")
+    normalized = make.strip().upper()
+    try:
+        result = (
+            supabase.table("vehicles")
+            .select("model")
+            .ilike("make", normalized)
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+    models = sorted({row["model"] for row in result.data if row.get("model")})
+    return models
+
+
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
     if type == "plate":
