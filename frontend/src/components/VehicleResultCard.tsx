@@ -8,9 +8,9 @@ interface Props {
 const KNOWN_UNITS = ['кг', 'см', 'мм', 'cc', 'м', 'т', 'г', 'м3', 'л', 'кВт', 'HP', 'h', 'kw', 'hp']
 
 const UNIT_MAP: Record<string, string> = {
-  height: ' мм',
-  width: ' мм',
-  length: ' мм',
+  height: ' см',
+  width: ' см',
+  length: ' см',
   weight: ' кг',
   gross_weight: ' кг',
   payload: ' кг',
@@ -61,9 +61,9 @@ export default function VehicleResultCard({ vehicle }: Props) {
   ]
 
   const techLeft = [
-    { label: 'Жолооны ангилал', value: vehicle.steering_class, fieldKey: undefined },
+    { label: 'Жолооны ангилал', value: vehicle.steering_position, fieldKey: undefined },
     { label: 'Суудлын тоо', value: vehicle.seat_count, fieldKey: undefined },
-    { label: 'Хөтлөгчийн төрөл', value: vehicle.drive_type, fieldKey: undefined },
+    { label: 'Хөтлөгчийн төрөл', value: vehicle.steering_class, fieldKey: undefined },
     { label: 'Өндөр', value: vehicle.height, fieldKey: 'height' },
     { label: 'Өөрийн жин', value: vehicle.weight, fieldKey: 'weight' },
     { label: 'Бух жин', value: vehicle.gross_weight, fieldKey: 'gross_weight' },
@@ -73,7 +73,7 @@ export default function VehicleResultCard({ vehicle }: Props) {
   const techRight = [
     { label: 'Шатахууны хувилбар', value: vehicle.fuel_type, fieldKey: undefined },
     { label: 'Хөдөлгүүрийн багтаамж', value: vehicle.engine_capacity, fieldKey: undefined },
-    { label: 'Хурдний байрлал', value: vehicle.steering_position, fieldKey: undefined },
+    { label: 'Хүрдний байрлал', value: vehicle.drive_type, fieldKey: undefined },
     { label: 'Өргөн', value: vehicle.width, fieldKey: 'width' },
     { label: 'Урт', value: vehicle.length, fieldKey: 'length' },
     { label: 'Хөдөлгүүрийн төрөл', value: vehicle.engine_type, fieldKey: undefined },

@@ -140,6 +140,28 @@ async def list_models(make: Optional[str] = None):
     return models
 
 
+@router.get("/debug-raw/{plate_number}")
+async def debug_raw_vehicle(plate_number: str):
+    normalized = plate_number.strip().upper()
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(
+                AUTOBOX_API,
+                params={"searchType": "plate", "searchValue": normalized},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+        result = body.get("result")
+        if not result:
+            return {"error": "no result in response", "raw": body}
+        vehicle = result.get("vehicle")
+        if not vehicle:
+            return {"error": "no vehicle in result", "result": result}
+        return {"vehicle": vehicle, "result_keys": list(result.keys())}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
     search_type = "plate" if type == "plate" else "vin"
