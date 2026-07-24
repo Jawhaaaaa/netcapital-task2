@@ -13,7 +13,7 @@ export default function SearchBar({ value, onChange, onSearch, searchType, onSea
   }
 
   return (
-    <div className="bg-gradient-to-br from-sky-900 via-blue-800 to-indigo-900 pt-16 pb-20">
+    <div className="bg-gradient-to-br from-sky-900 via-blue-800 to-indigo-900 pt-24 pb-20">
       <h1 className="text-white text-3xl font-bold text-center mb-6">
         МЭДЭЭЛЭЛ ХАРАХ
       </h1>
