@@ -99,11 +99,53 @@ async def list_models(make: Optional[str] = None):
     return models
 
 
+def _query_supabase(column: str, value: str) -> VehicleResponse:
+    if supabase is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Серверийн алдаа гарлаа",
+        )
+
+    normalized = value.strip().upper()
+
+    try:
+        result = (
+            supabase.table("vehicles")
+            .select("*")
+            .ilike(column, normalized)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+
+    if not result.data:
+        raise HTTPException(
+            status_code=404, detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй"
+        )
+
+    try:
+        return VehicleResponse(**result.data)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+
+
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
-    return await _lookup_autobox(value)
+    column = "plate_number" if type == "plate" else "vin"
+    try:
+        return await _lookup_autobox(value)
+    except HTTPException as exc:
+        if exc.status_code == 404 and supabase is not None:
+            return _query_supabase(column, value)
+        raise
 
 
 @router.get("/{plate_number}", response_model=VehicleResponse)
 async def lookup_vehicle(plate_number: str):
-    return await _lookup_autobox(plate_number)
+    try:
+        return await _lookup_autobox(plate_number)
+    except HTTPException as exc:
+        if exc.status_code == 404 and supabase is not None:
+            return _query_supabase("plate_number", plate_number)
+        raise
