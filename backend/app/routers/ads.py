@@ -1,4 +1,4 @@
-import httpx
+import asyncio
 from typing import Optional
 
 import httpx
@@ -18,18 +18,27 @@ async def search_ads(make: Optional[str] = None, model: Optional[str] = None):
         params["make"] = make
     if model is not None:
         params["model"] = model
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                "https://ungegui-car-scraper.onrender.com/api/redirect",
-                params=params,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return {"redirect_url": data["redirect_url"]}
-    except httpx.TimeoutException:
+
+    attempts = 0
+    last_error = None
+    while attempts < 2:
+        attempts += 1
+        try:
+            async with httpx.AsyncClient(timeout=45) as client:
+                resp = await client.get(
+                    "https://ungegui-car-scraper.onrender.com/api/redirect",
+                    params=params,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return {"redirect_url": data["redirect_url"]}
+        except (httpx.TimeoutException, httpx.HTTPError) as exc:
+            last_error = exc
+            if attempts < 2:
+                await asyncio.sleep(2)
+        except Exception:
+            raise HTTPException(status_code=500, detail="Алдаа гарлаа")
+
+    if isinstance(last_error, httpx.TimeoutException):
         raise HTTPException(status_code=504, detail="Зарын үйлчилгээ хариу өгсөнгүй")
-    except httpx.HTTPError:
-        raise HTTPException(status_code=504, detail="Зарын үйлчилгээ хариу өгсөнгүй")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Алдаа гарлаа")
+    raise HTTPException(status_code=504, detail="Зарын үйлчилгээ хариу өгсөнгүй")
