@@ -23,14 +23,12 @@ async def _lookup_autobox(value: str) -> Optional[VehicleResponse]:
             )
             resp.raise_for_status()
             body = resp.json()
+        result = body.get("result") or {}
+        if result.get("errorMessage") or not result.get("vehicle"):
+            return None
+        v = result["vehicle"]
     except Exception:
         return None
-
-    result = body.get("result") or {}
-    if result.get("errorMessage") or not result.get("vehicle"):
-        return None
-
-    v = result["vehicle"]
 
     def _get(*keys):
         for k in keys:
