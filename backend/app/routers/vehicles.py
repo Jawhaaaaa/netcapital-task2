@@ -1,5 +1,6 @@
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException
 
 from app.database import supabase
@@ -8,35 +9,67 @@ from app.schemas import VehicleResponse
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
 
-def _query(column: str, value: str):
-    if supabase is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Серверийн алдаа гарлаа",
-        )
-
+async def _lookup_autobox(value: str) -> VehicleResponse:
+    """Look up a vehicle by plate number or VIN via the autobox.mn API."""
     normalized = value.strip().upper()
 
     try:
-        result = (
-            supabase.table("vehicles")
-            .select("*")
-            .ilike(column, normalized)
-            .maybe_single()
-            .execute()
-        )
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                "https://www.autobox.mn/api/services/app/Xyp/GetAutoboxInfo",
+                params={"plateNo": normalized},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Серверийн алдаа гарлаа")
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Серверийн алдаа гарлаа")
     except Exception:
         raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
 
-    if not result.data:
+    result = body.get("result") or {}
+    if result.get("errorMessage") or not result.get("vehicle"):
         raise HTTPException(
-            status_code=404, detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй"
+            status_code=404,
+            detail="Тээврийн хэрэгслийн мэдээлэл олдсонгүй",
         )
 
-    try:
-        return VehicleResponse(**result.data)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Серверийн алдаа гарлаа")
+    v = result["vehicle"]
+
+    def _get(*keys):
+        for k in keys:
+            val = v.get(k)
+            if val is not None:
+                return val
+        return None
+
+    return VehicleResponse(
+        plate_number=_get("plateNo", "plateNumber", "regNo") or normalized,
+        vin=_get("vinNo", "vinNumber", "vin"),
+        make=_get("makeName", "make", "mark", "markName"),
+        model=_get("modelName", "model"),
+        purpose=_get("purpose", "usageType"),
+        manufacture_year=_get("manufactureYear", "yearMade", "year", "manufacture_year"),
+        imported_date=_get("importDate", "importedDate", "imported_date"),
+        country=_get("countryName", "country", "originCountry"),
+        color=_get("colorName", "color"),
+        special_purpose=_get("specialPurpose", "special_purpose"),
+        steering_class=_get("steeringClass", "steering_class"),
+        fuel_type=_get("fuelTypeName", "fuelType", "fuel_type"),
+        seat_count=_get("seatCount", "seat_count"),
+        engine_capacity=_get("engineCapacity", "engine_capacity"),
+        drive_type=_get("driveType", "drive_type"),
+        steering_position=_get("steeringPosition", "steering_position"),
+        height=_get("height"),
+        width=_get("width"),
+        length=_get("length"),
+        weight=_get("weight", "curbWeight"),
+        gross_weight=_get("grossWeight", "gross_weight"),
+        payload=_get("payload"),
+        engine_type=_get("engineType", "engine_type"),
+        axle_count=_get("axleCount", "axle_count"),
+    )
 
 
 @router.get("/makes")
@@ -68,13 +101,9 @@ async def list_models(make: Optional[str] = None):
 
 @router.get("/search", response_model=VehicleResponse)
 async def search_vehicle(type: str, value: str):
-    if type == "plate":
-        return _query("plate_number", value)
-    if type == "vin":
-        return _query("vin", value)
-    raise HTTPException(status_code=400, detail="Хайлтын төрөл буруу")
+    return await _lookup_autobox(value)
 
 
 @router.get("/{plate_number}", response_model=VehicleResponse)
 async def lookup_vehicle(plate_number: str):
-    return _query("plate_number", plate_number)
+    return await _lookup_autobox(plate_number)
