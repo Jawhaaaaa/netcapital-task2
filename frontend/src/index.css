@@ -8,3 +8,12 @@
   --color-steel: #94A3B8;
   --color-amber: #F2A93B;
 }
+
+@keyframes adCardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ad-card-enter {
+  animation: adCardIn 400ms ease-out both;
+}

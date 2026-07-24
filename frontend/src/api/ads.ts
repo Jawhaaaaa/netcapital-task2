@@ -1,3 +1,4 @@
+import type { CarExportResponse } from '../types'
 import axios from 'axios'
 
 const api = axios.create({
@@ -16,10 +17,14 @@ export async function getModels(make?: string): Promise<string[]> {
   return data
 }
 
-export async function searchAds(make?: string, model?: string): Promise<{ redirect_url: string }> {
-  const params: Record<string, string> = {}
+export async function searchAds(
+  make?: string,
+  model?: string,
+  page: number = 1,
+): Promise<CarExportResponse> {
+  const params: Record<string, string> = { page: String(page) }
   if (make) params.make = make
   if (model) params.model = model
-  const { data } = await api.get<{ redirect_url: string }>('/api/ads/search', { params })
+  const { data } = await api.get<CarExportResponse>('/api/ads/search', { params })
   return data
 }

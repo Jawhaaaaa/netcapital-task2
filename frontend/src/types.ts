@@ -24,3 +24,19 @@ export interface Vehicle {
   engine_type: string | null
   axle_count: number | null
 }
+
+export interface CarAd {
+  make: string
+  model: string
+  year: number
+  price: string
+  link: string
+}
+
+export interface CarExportResponse {
+  cars: CarAd[]
+  total: number
+  page: number
+  limit: number
+  pages: number
+}

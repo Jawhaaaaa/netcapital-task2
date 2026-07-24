@@ -28,3 +28,19 @@ class VehicleResponse(BaseModel):
     payload: Optional[str] = None
     engine_type: Optional[str] = None
     axle_count: Optional[int] = None
+
+
+class CarAd(BaseModel):
+    make: str
+    model: str
+    year: int
+    price: str
+    link: str
+
+
+class CarExportResponse(BaseModel):
+    cars: list[CarAd]
+    total: int
+    page: int
+    limit: int
+    pages: int
